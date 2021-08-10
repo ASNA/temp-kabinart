@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>12.0.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>39adc8f6-1980-40dd-bba9-aa7666afbe0a</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>GenFileSchema</RootNamespace>
+    <AssemblyName>GenFileSchema</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <Name>GenFileSchema</Name>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <NoWarn>5002,5003</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugSymbols>false</DebugSymbols>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <NoWarn>5002,5003</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ArgyBargy">
+      <HintPath>..\..\..\..\cs\other\TestArgyBargySpike\ArgyBargy\bin\Debug\ArgyBargy.dll</HintPath>
+    </Reference>
+    <Reference Include="ASNA.DataGate.Client" />
+    <Reference Include="ASNA.Runtime, Version=15.0.45.0, Culture=neutral, PublicKeyToken=d7106be54d30c861">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\..\..\..\Downloads\Json60r8\Bin\Net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Windows.Forms">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\System.Windows.Forms.dll</HintPath>
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="YamlDotNet">
+      <HintPath>..\..\..\..\..\..\Downloads\yamldotnet.11.2.1\lib\net45\YamlDotNet.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Class1.vr" />
+    <Compile Include="DataGateFile.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+    <Compile Include="DataGateFileOperations.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+    <Compile Include="DataGateLibraryOperations.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+    <Compile Include="Field.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+    <Compile Include="FieldCollection.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+    <Compile Include="FileDef.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+    <Compile Include="GetFileDescription.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.vr" />
+    <Compile Include="SQLOperations.vr">
+      <SubType>
+      </SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="sqlserver_datatypes.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\ASNA\VisualRPG\v11.2\ASNA.VisualRPG.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

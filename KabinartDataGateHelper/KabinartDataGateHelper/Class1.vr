@@ -1,0 +1,8 @@
+﻿Using System
+Using System.Text
+
+DclNamespace KabinartDataGateHelper
+
+BegClass Class1 Access(*Public)
+
+EndClass

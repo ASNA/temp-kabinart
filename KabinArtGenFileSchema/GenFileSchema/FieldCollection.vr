@@ -1,0 +1,250 @@
+Using System
+Using System.Text
+Using System.Text.RegularExpressions
+Using System.Collections
+
+BegClass FieldCollection Extends( System.Collections.CollectionBase ) +
+                         Implements( IEnumerable ) +
+                         Access( *Public )  +
+                         Attributes( System.Reflection.DefaultMember( "Item" ) )
+    
+    BegFunc ToString Type( *String ) Access( *Public ) Modifier( *Overrides )
+        DclFld sb Type( System.Text.StringBuilder ) New( 64 )
+    
+        ForEach Field Type(Field ) Collection( *This.List )
+            sb.Append( Field.Name + ", " )         
+        EndFor
+        
+        LeaveSr RegEx.Replace( sb.ToString(), ", $", String.Empty ) 
+    EndFunc          
+    
+    BegProp KeyFields  Type( FieldCollection ) Access( *Public )  
+        // Get collection of keyfields.
+        BegGet
+            DclFld sl    Type( SortedList ) New()
+            DclFld fc    Type( FieldCollection ) New()
+            DclFld Index Type( *Integer4 ) 
+
+            ForEach fld Type( Field ) Collection( *This.List )
+                If ( fld.KeyPosition > -1 ) 
+                    sl.Add( fld.KeyPosition.ToString( "000" ), fld.Name ) 
+                EndIf                     
+            EndFor
+
+            ForEach FieldName Type( *String ) Collection( sl.Values ) 
+                Index = *This.IndexOf( FieldName ) 
+                fc.Add( *This[ Index ] )
+            EndFor
+
+            LeaveSr fc 
+        EndGet            
+    EndProp
+    
+    // --------------------------------------------------------------------------------------------------
+    
+    BegProp AllFieldsCommaList Type( *String ) Access( *Public ) 
+        // Get comma-seperated list of key fields.
+        BegGet
+            LeaveSr CreateFieldCommaList( *This ) 
+        EndGet    
+    EndProp 
+    
+//    BegProp SelectedFieldsCommaList Type( *String ) Access( *Public ) 
+//        // Get comma-seperated list of key fields.
+//        BegGet
+//            LeaveSr CreateFieldCommaList( *This.SelectedFields ) 
+//        EndGet    
+//    EndProp 
+    
+    BegProp KeyFieldsCommaList Type( *String ) Access( *Public ) 
+        // Get comma-seperated list of key fields.
+        BegGet
+            LeaveSr CreateFieldCommaList( *This.KeyFields ) 
+        EndGet    
+    EndProp 
+    
+    // --------------------------------------------------------------------------------------------------
+
+    BegProp AllFieldsAliasCommaList Type( *String ) Access( *Public ) 
+        // Get comma-seperated list of key fields.
+        BegGet
+            LeaveSr CreateFieldAliasCommaList( *This ) 
+        EndGet    
+    EndProp 
+    
+//    BegProp AllSelectedFieldsAliasCommaList Type( *String ) Access( *Public ) 
+//        // Get comma-seperated list of key fields.
+//        BegGet
+//            LeaveSr CreateFieldAliasCommaList( *This.SelectedFields ) 
+//        EndGet    
+//    EndProp 
+    
+    BegProp AllKeyFieldsAliasCommaList Type( *String ) Access( *Public ) 
+        // Get comma-seperated list of key fields.
+        BegGet
+            LeaveSr CreateFieldAliasCommaList( *This.KeyFields ) 
+        EndGet    
+    EndProp 
+    
+    // --------------------------------------------------------------------------------------------------
+    
+    
+    BegFunc CreateFieldCommaList  Type( *String ) 
+        DclSrParm FieldList Type( FieldCollection ) 
+
+        DclFld sb Type( System.Text.StringBuilder ) New( 64 )
+        
+        ForEach f Type( Field ) Collection( FieldList ) 
+            sb.Append( f.Name + ", " )     
+        EndFor         
+
+        LeaveSr RegEx.Replace( sb.ToString(), ", $", String.Empty ) 
+    EndFunc 
+    
+    BegFunc CreateFieldAliasCommaList Type( *String ) 
+        //
+        // Return a comma-separated list of field aliases.
+        //
+        DclSrParm FieldList Type( FieldCollection ) 
+
+        DclFld sb Type( System.Text.StringBuilder ) New( 64 )
+        
+        ForEach f Type( Field ) Collection( FieldList ) 
+            sb.Append( f.Alias + ", " )     
+        EndFor         
+
+        LeaveSr RegEx.Replace( sb.ToString(), ", $", String.Empty ) 
+    EndFunc 
+    
+    
+    // Add a Fields object to the collection.                       
+    BegSr Add Access( *Public ) 
+        DclSrParm ObjInstance Type( Field )     
+                                                                                
+        List.Add( ObjInstance )  
+    EndSr
+
+    // Return the index of an instance of a Fields object.
+    BegFunc IndexOf Type( *Integer4 ) Access( *Public ) 
+        DclSrParm ObjInstance Type( Field )     
+
+        LeaveSr Value( List.IndexOf( ObjInstance ) )       
+    EndFunc 
+    
+    BegFunc HasField Type( *Boolean ) Access( *Public ) 
+        DclSrParm FieldName Type( *String ) 
+        
+        LeaveSr Value( *This.IndexOf( FieldName ) > -1 )
+    EndFunc 
+    
+    // Return the index of an instance of a Fields object 
+    // by its string value.
+    BegFunc IndexOf Type( *Integer4 ) Access( *Public ) 
+        DclSrParm FieldName Type( *String ) 
+        
+        DclFld Idx Type( *Integer4 ) Inz( 0 ) 
+        
+        ForEach f Type( Field ) Collection( *This ) 
+            If ( f.Name.ToUpper() = FieldName.ToUpper() ) 
+                LeaveSr Idx 
+            EndIf             
+            Idx = Idx + 1 
+        EndFor 
+        
+        LeaveSr Value( -1 ) 
+    EndFunc 
+    
+    // Return an instance of the Fields class based on its ordinal
+    // position in the collection. In C# this is known as the indexer. 
+    // The DefaultMember attribute specifies this as the default 
+    // member (property) of this class, thereby allowing direct access
+    // of an object in the list just by providing its index value.
+    // In other words, you can fetch the 4th item in the list this way:
+    //     x = cl.Item[ 4 ]
+    // Or, because Item is the default member, you can do this:
+    //     x = cl[ 4 ]
+    BegProp Item Type( Field ) Access( *Public )
+        DclSrParm Index Type( *Integer4 ) 
+        BegGet             
+            LeaveSr List[ Index ] *As Field     
+        EndGet
+    EndProp 
+    
+    BegProp Item Type( Field ) Access( *Public )
+        DclSrParm Index Type( *String ) 
+        BegGet             
+            If ( *This.IndexOf( Index ) <> -1 )             
+                LeaveSr List[ *This.IndexOf( Index ) ] *As Field
+            Else
+                LeaveSr *Nothing 
+            EndIf                
+        EndGet
+    EndProp 
+    
+    // ---IEnumerable.GetEnumerator---------------------------------------------
+    // This member, and the FieldCollectionEnum class enable For/Each
+    // for this class.
+    BegFunc GetEnumerator Type( IEnumerator )   +
+                          Access( *Public )     +
+                          Implements( IEnumerable.GetEnumerator )
+
+        DclFld Enum Type( FieldCollectionEnum ) New( *This )
+
+        LeaveSr  Value( Enum )        
+    EndFunc 
+    
+//    BegConstructor Access(*Public)
+//        DclSrParm Name    Type( *String ) 
+//        
+//        *This.Name  = Name
+//    EndConstructor
+
+    BegConstructor Access(*Public)
+
+    EndConstructor
+    
+//    BegFunc ToString Type( *String ) Access( *Public ) Modifier( *Overrides ) 
+//        LeaveSr Value( *This.Name ) 
+//    EndFunc     
+    
+    // ---Enumerator class------------------------------------------------------
+    // Provider the enumerator helper class for FieldCollection.
+    BegClass FieldCollectionEnum Access( *Private ) +
+                              Implements( IEnumerator ) 
+
+        DclFld CurIndex     Type( *Integer4 )  Inz( -1 ) 
+        DclFld List         Type( FieldCollection ) 
+
+        BegConstructor Access( *Public ) 
+            DclSrParm List Type( FieldCollection ) 
+            
+            *This.List = List
+        EndConstructor
+       
+        // Gets the current element in the collection.
+        BegProp Current Access( *Public ) Type( *Object ) +
+                                          Implements( IEnumerator.Current ) 
+                                          
+            BegGet
+                LeaveSr Value( List.Item[ CurIndex ] *As Field )
+            EndGet
+        EndProp
+        
+        // Advances the enumerator to the next element of the collection.        
+        BegFunc MoveNext Access( *Public ) Type( *Boolean ) +
+                                           Implements( IEnumerator.MoveNext )
+                                           
+            *This.CurIndex = *This.CurIndex + 1 
+            
+            LeaveSr Value( *This.CurIndex < List.Count ) 
+        EndFunc 
+
+        // Sets the enumerator to its initial position, which is before the 
+        // first element in the collection.        
+        BegSr Reset Access( *Public ) +
+                    Implements( IEnumerator.Reset ) 
+                    
+            *This.CurIndex = -1
+        EndSr 
+    EndClass
+EndClass     

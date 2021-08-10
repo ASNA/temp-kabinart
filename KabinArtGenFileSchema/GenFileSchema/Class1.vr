@@ -1,0 +1,420 @@
+﻿Using System
+Using System.Windows
+Using System.Collections
+Using System.Collections.Generic 
+Using System.Text
+Using System.Text.RegularExpressions
+Using System.Xml
+Using System.IO
+Using NewtonSoft
+using YamlDotNet.Serialization
+using YamlDotNet.Samples.Helpers
+using CommandLineUtility
+
+BegClass Program
+	BegSr Main Shared(*Yes) Access(*Public) Attributes(System.STAThread())
+		DclSrParm args Type(*String) Rank(1)
+
+        (*New MainPgm()).Run(args)
+
+    EndSr 
+EndClass
+
+BegClass MainPgm Access(*Public) 
+
+    BegSr Run Access(*Public) 
+        DclSrParm args Type(*String) Rank(1) 
+        /*
+            GenFileSchema <DBName> <Library> 
+            GetFileSchema <DBName> <Library> <Filename>
+         */
+
+        DclFld RootPath Type(*String) 
+        DclFld TargetFolder Type(*String) 
+        DclFld ow Type(ObjectWriter) 
+
+        DclFld CmdLine Type(CommandLineArgs) New()
+        DclFld cam Type(CmdArgManager) 
+        DclFld result Type(CommandLineUtility.CmdArgManager.ExitCode) 
+
+        DclFld LibOps Type(DataGateLibraryOperations) New()
+
+        DclArray Libraries Type(*String) Rank(1) 
+
+        cam = *New CommandLineUtility.CmdArgManager(CmdLine, args, "Generate DataGate file schemas for a library")      
+        AddHandler SourceObject(cam) SourceEvent(HelpShown) HandlerObject(*This) HandlerSr(HelpShownHandler) 
+
+        result = cam.ParseArgs()
+        If result = CmdArgManager.ExitCode.HelpShown
+            LeaveSr 
+        ElseIf result <> CmdArgManager.ExitCode.Success
+            CustomConsole.WriteLineError(cam.ErrorMessage)
+            LeaveSr 
+        EndIf 
+
+        Console.WriteLine('Working...') 
+
+        DclFld UserDocsPath Type(*String) 
+        DclFld DefaultPathRoot Type(*String) 
+       
+        // c:\users\xxx\documents
+        UserDocsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        DefaultPathRoot = System.Configuration.ConfigurationManager.AppSettings['defaultOutputPath']
+        TargetFolder = System.IO.Path.Combine(UserDocsPath, DefaultPathRoot, CmdLine.OutputPath) 
+                
+        If NOT Directory.Exists(TargetFolder) 
+            CustomConsole.WriteLineError('Target directory [{0}] does not exist', TargetFolder) 
+            LeaveSr 
+        EndIf 
+
+        If CmdLine.LibraryName.ToLower() <> '*all'
+            Libraries = *new *String[] {CmdLine.LibraryName}
+        Else 
+            Libraries = LibOps.GetLibraries(CmdLine.DatabaseName)
+        EndIf 
+        
+        // Search for this text "Save XML to disk"
+        // in the GetFileDescriptionClass to write XML file disk.
+
+        DclFld FileList Type(List(*Of DataGateFile)) 
+        DclFld fso Type(FileSchemaOperations) 
+
+        ForEach Library Type(*String) Collection(Libraries) 
+        
+            FileList = *New List(*Of DataGateFile)()
+            fso = *New FileSchemaOperations(RootPath, TargetFolder)  
+        
+            Try         
+                FileList = fso.GetFileList(CmdLine.DatabaseName, Library, CmdLine.PhysicalsOnly) 
+            Catch err Type(Exception) 
+                CustomConsole.WriteLineError(Err.Message) 
+                LeaveSr 
+            EndTry 
+        
+            ow = *New ObjectWriter(RootPath, TargetFolder) 
+
+            If CmdLine.YAML
+                ow.WriteYaml(FileList) 
+            Else
+                ow.WriteJson(FileList)
+            EndIf 
+        EndFor 
+
+        If CmdLine.Pause
+            Console.WriteLine('Press any key to continue...') 
+            Console.ReadKey()
+        EndIf 
+    EndSr                
+
+    BegFunc ConvertArrayListToArray Type(*String) Rank(1) 
+        DclSrParm Libraries Type(ArrayList)
+
+        DclFld Members Type(List(*of String)) New()
+
+        ForEach Library Type(*String) Collection(Libraries) 
+            Members.Add(Library)
+        EndFor 
+
+        LeaveSr Members.ToArray()       
+    EndFunc 
+
+    BegSr HelpShownHandler 
+        DclSrParm Sender Type(*Object) 
+        DclSrparm e Type(ShowHelpEventArgs) 
+
+        DclFld CmdLine Type(CommandLineArgs) 
+        DclFld RootPath Type(*String) 
+
+        CmdLine = e.CmdArgs *As CommandLineArgs 
+
+        RootPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        CustomConsole.WriteLineInfo(String.Empty)
+        CustomConsole.WriteLineInfo("The default schema output path is:") 
+        CustomConsole.WriteLineInfo("  " + PathJoin(RootPath, CmdLine.OutputPath))
+        CustomConsole.WriteLineInfo("The default output path is the user's Document path plus what is defined in the 'app.config' file.")
+        CustomConsole.WriteLineInfo("To change the output path at runtime, the --outputpath arg is appended to the user's Documents path")
+        CustomConsole.WriteLineInfo("plus the path in 'app.config'. The output path must exist.")
+    EndSr 
+
+    BegFunc PathJoin Type(*String) 
+        DclSrParm Path1 Type(*String) 
+        DclSrParm Path2 Type(*String) 
+
+        If Path2.StartsWith('\') 
+            Leavesr Path1 + Path2
+        Else
+            LeaveSr Path1 + '\' + Path2 
+        EndIf 
+    EndFunc 
+
+EndClass
+
+
+BegClass CommandLineArgs Access(*Public) 
+    DclFld _DatabaseName Type(*String)
+    BegProp DatabaseName Type(*String)  Access(*Public) Attributes(CmdArg("--databasename", "-d", *True,  "Database Name"))
+        BegGet
+            LeaveSr Value(_DatabaseName)
+        EndGet
+        BegSet
+            _DatabaseName = *Propval
+        EndSet
+    EndProp
+                            
+    DclFld _LibraryName Type(*String)
+    BegProp LibraryName Type(*String)  Access(*Public) Attributes(CmdArg("--library", "-l", *True, "Library name (or *All for all libraries)"))
+        BegGet
+            LeaveSr Value(_LibraryName)
+        EndGet
+        BegSet
+            _LibraryName = *Propval
+        EndSet
+    EndProp
+
+    DclFld _OutputPath Type(*String)
+    BegProp OutputPath Type(*String)  Access(*Public) Attributes(CmdArg("--outputpath", "-op", *False, "output path (appended to the user's Documents folder)"))
+        BegGet
+            LeaveSr Value(_OutputPath)
+        EndGet
+        BegSet
+            _OutputPath = *Propval
+        EndSet
+    EndProp
+
+    DclFld _YAML Type(*Boolean)
+    BegProp YAML Type(*Boolean)  Access(*Public) Attributes(CmdArg("--yaml", "-y", *False, "Write schema in YAML instead of Json"))       
+        BegGet
+            LeaveSr Value(_YAML)
+        EndGet
+        BegSet
+            _YAML = *Propval
+        EndSet
+    EndProp
+
+    DclFld _Pause Type(*Boolean)
+    BegProp Pause Type(*Boolean)  Access(*Public) Attributes(CmdArg("--pause", "-p", *False, "Pause the screen after processing"))
+        BegGet
+            LeaveSr Value(_Pause)
+        EndGet
+        BegSet
+            _Pause = *Propval
+        EndSet        
+    EndProp   
+
+    DclFld _PhysicalsOnly Type(*Boolean)
+    BegProp PhysicalsOnly Type(*Boolean)  Access(*Public) Attributes(CmdArg("--physicalsonly", "-po", *False, "Process physical files only"))
+        BegGet
+            LeaveSr Value(_PhysicalsOnly)
+        EndGet
+        BegSet
+            _PhysicalsOnly = *Propval
+        EndSet
+    EndProp         
+
+    BegConstructor Access(*Public) 
+        *This.Pause = *False 
+        //*This.OutputPath = System.Configuration.ConfigurationManager.AppSettings['defaultOutputPath']
+        *This.OutputPath = String.Empty
+    EndConstructor 
+EndClass
+
+BegClass ObjectWriter
+    DclFld OutputPath Type(*String) 
+    //DclFld DBName Type(*String) 
+    DclFld isFirstFile Type(*Boolean) Inz(*True) 
+
+
+    BegFunc GetPureAscii Type(*String) 
+        DclSrParm InputString Type(*String) 
+
+        // This gets the first 127 ASCII values. The IBM i sometimes produces a \u0080 value instead of 
+        // \u0020 (a space) in trailing blanks. I've only see this happen, sometimes, with the field's
+        // description. I don't know why it's intermittment--and I don't care! This ensures nothing 
+        // but the first 127 ASCII characters are included in the Json. BTW, ASCII 128 is \u0080.
+        LeaveSr Regex.Replace(InputString, "[^\u0000-\u007F]+", string.Empty)
+    EndFunc
+
+    BegConstructor Access(*Public) 
+        DclSrParm RootPath Type(*String) 
+        DclSrParm TargetDirectory Type(*String) 
+
+        If NOT TargetDirectory.EndsWith('\') 
+            TargetDirectory = TargetDirectory + '\'
+        EndIf 
+        *This.OutputPath = TargetDirectory 
+    EndConstructor 
+
+    BegSr WriteJson Access(*Public) 
+        DclSrParm FileList Type(List(*Of DataGateFile)) 
+
+        DclFld Json Type(*String) 
+        DclFld OutputFile Type(*String) 
+        DclFld LibraryName Type(*String) 
+        DclFld SqlToCreateTable Type(*String) 
+
+        DclFld SqlDBName Type(*String) 
+
+        SqlDBName = 'TestDB' 
+
+        ForEach FileObj Type(DataGateFile) Collection(FileList) 
+            DclFld x Type(*String) 
+
+            x = FileOBj.file
+            Dclfld fc Type(FieldCollection) 
+
+            fc = FileObj.Fields
+
+            ForEach fld Type(Field) Collection(FileObj.fields) 
+                x = fld.type
+            EndFor 
+
+            SqlToCreateTable = SqlOperations.WriteSQLSchema(FileObj, SQLDBName) 
+
+            Json = NewtonSoft.Json.JsonConvert.SerializeObject(FileObj, Newtonsoft.Json.Formatting.Indented)
+            // File meta data from the IBM i sometimes has trailing high-order characters. Strip those off. 
+            // I've only see this occur in the trailing characters of the field description. 
+            Json = GetPureAscii(Json) 
+
+            If *this.isFirstFile
+                Console.WriteLine('Output folder: {0}', *This.OutputPath) 
+                *This.isFirstFile = *False  
+            EndIf 
+
+            If FileObj.library = "/" 
+                LibraryName = "#root"
+            Else
+                LibraryName = FileObj.library.ToLower()
+            EndIf 
+
+            OutputFile = *This.OutputPath + String.Format('{0}_{1}.json', LibraryName, FileObj.File.ToLower())        
+            Console.WriteLine('  Writing Json file schema: {0}_{1}', LibraryName, FileObj.File.ToLower())
+            //Console.WriteLine(OutputFile) 
+            File.WriteAllText(OutputFile, Json, Encoding.UTF8) 
+
+            If FileObj.type = 'physical'
+                OutputFile = *This.OutputPath + String.Format('create_table_{0}_{1}.sql', LibraryName, FileObj.File.ToLower())        
+                Console.WriteLine('  Writing SQL to create file: {0}_{1}', LibraryName, FileObj.File.ToLower())
+                //Console.WriteLine(OutputFile) 
+                File.WriteAllText(OutputFile, SqlToCreateTable, Encoding.UTF8) 
+            EndIf 
+        EndFor 
+    EndSr
+
+    BegSr WriteYaml Access(*Public) 
+        DclSrParm FileList Type(List(*Of DataGateFile)) 
+
+        DclFld Yaml Type(*String) 
+        DclFld OutputFile Type(*String) 
+
+        DclFld YamlSerializer Type(ISerializer) 
+
+        ForEach FileObj Type(DataGateFile) Collection(FileList) 
+            YamlSerializer = *New SerializerBuilder().Build()
+            Yaml = YamlSerializer.Serialize(FileObj) 
+
+            If *this.isFirstFile
+                Console.WriteLine('Output folder: {0}', *This.OutputPath) 
+                *This.isFirstFile = *False  
+            EndIf 
+
+            OutputFile = *This.OutputPath + String.Format('{0}_{1}.yaml', FileObj.Library.ToLower(), FileObj.File.ToLower())
+        
+            Console.WriteLine('  Writing yaml file schema: {0}_{1}', FileObj.Library.ToLower(), FileObj.File.ToLower())
+            File.WriteAllText(OutputFile, Yaml, Encoding.UTF8) 
+        EndFor 
+    EndSr
+
+
+EndClass 
+
+BegClass FileSchemaOperations
+
+    DclFld OutputPath Type(*String) 
+    DclFld isFirstFile Type(*Boolean) Inz(*True) 
+
+    BegConstructor Access(*Public) 
+        DclSrParm RootPath Type(*String) 
+        DclSrParm TargetDirectory Type(*String) 
+
+//        If NOT RootPath.EndsWith('\') 
+//            RootPath = RootPath + '\'
+//        EndIf 
+
+        If NOT TargetDirectory.EndsWith('\') 
+            TargetDirectory = TargetDirectory + '\'
+        EndIf 
+
+//        *This.OutputPath = RootPath + TargetDirectory 
+//        If Not Directory.Exists(*This.OutputPath) 
+//            Directory.CreateDirectory(*This.OutputPath) 
+//        EndIf 
+    EndConstructor 
+
+    BegSr WriteFileSchemaAsJson Access(*Public) 
+        DclSrParm DBName Type(*String) 
+        DclSrParm Library Type(*String) 
+        DclSrParm FileName Type(*String) 
+
+        DclFld Json Type(*String) 
+        DclFld OutputFile Type(*String) 
+        
+        Json = *This.GetFileSchemaAsJson(DBName, Library, FileName)
+
+        If *this.isFirstFile
+            Console.WriteLine('Output folder: {0}', *This.OutputPath) 
+            *This.isFirstFile = *False  
+        EndIf 
+
+        OutputFile = *This.OutputPath + String.Format('{0}_{1}.json', Library.ToLower(), FileName.ToLower())
+        
+        Console.WriteLine('  Writing Json file schema: {0}_{1}', Library, FileName)        
+        File.WriteAllText(OutputFile, Json, Encoding.UTF8) 
+    EndSr
+
+    BegFunc GetFileList Type(List(*Of DataGateFile)) Access(*Public) 
+        DclSrParm DBName Type(*String) 
+        DclSrParm Library Type(*String) 
+        DclSrParm PhysicalsOnly Type(*Boolean) 
+
+        DclFld LibOps Type(DataGateLibraryOperations) New()
+        DclFld DGFileOperations Type(DataGateFileOperations) New()
+        DclFld FileNameList Type(List(*Of *String)) New()
+        DclFld FileList Type(List(*Of DataGateFile)) New()
+        DclFld DGFile Type(DataGateFile)
+        
+        FileNameList = LibOps.GetFiles(DBName, Library)
+
+        ForEach FileName Type(*String) Collection(FileNameList) 
+            DGFile = DGFileOperations.GetFileObject(DBName, Library, FileName)      
+                 
+            If PhysicalsOnly 
+                If DGFile.Type.ToLower() = 'physical' 
+                    FileList.Add(DGFile)
+                EndIf
+            Else 
+                If DGFile.Type.ToLower() = 'physical' OR DGFile.Type.ToLower().Contains('logical')  
+                    FileList.Add(DGFile)
+                EndIf 
+            EndIf 
+
+        EndFor 
+
+        LeaveSr FileList 
+    EndFunc 
+
+    BegFunc GetFileSchemaAsJson Type(*String) 
+        DclSrParm DBName Type(*String) 
+        DclSrParm Library Type(*String) 
+        DclSrParm FileName Type(*String) 
+
+        DclFld g Type(GenFileDescription) New()
+        DclFld f Type(FileDef) 
+        DclFld Json Type(*String) 
+       
+        f = g.Generate(DBName, Library, FileName) 
+        Json = NewtonSoft.Json.JsonConvert.SerializeObject(f, Newtonsoft.Json.Formatting.Indented)
+
+        LeaveSr Json 
+	EndFunc 
+
+EndClass

@@ -1,0 +1,288 @@
+﻿Using System
+Using System.Collections
+Using System.Text
+Using System.Xml
+Using System.Text.RegularExpressions
+Using System.Collections.Generic
+Using System.IO
+Using System.Collections.Specialized
+Using ASNA.DataGate.Client
+Using ASNA.DataGate.Common
+Using ASNA.DataGate.DataLink
+Using ASNA.DataGate.Providers
+
+
+BegClass GenFileDescription
+
+    DclFld db Type( AdgConnection ) 
+
+    BegFunc  Generate Type(FileDef) Access(*Public)
+        DclSrParm DBName  Type( *String )
+        DclSrParm Library Type( *String )
+        DclSrParm File    Type( *String )
+
+        DclFld Result        Type(FileDef)
+
+
+        Result = GetFileObject(DBName, Library, File) 
+
+        LeaveSr Result 
+    EndFunc
+
+    BegFunc GetDB Type( *Boolean )
+        DclSrParm DBName Type( *String ) 
+        
+        Try
+            *This.db = *New AdgConnection( dbName )
+        Catch dgEx Type(dgException)
+
+            LeaveSr *False
+        EndTry
+
+        LeaveSr *True 
+	EndFunc    
+
+
+    // rpnote: !important
+    BegFunc GetFileObject Type(FileDef) Access( *Public )   
+        DclSrParm DBName    Type( *String )
+        DclSrParm Library   Type( *String )
+        DclSrParm FileName  Type( *String )
+        
+        DclFld FileObj       Type( ASNA.DataGate.Client.IFileObject )
+        DclFld XMLFileName   Type(*String) 
+        DclFld Result        Type(FileDef)
+
+        XMLFileName = Library + "_" + FileName + ".xml"
+        
+        GetDB( DBName )
+        
+        Try
+            // Get the file object.
+            FileObj = AdgFactory.NewFile(db, Library + "/" + FileName)                        
+
+            // Save XML to disk.
+            //FileObj.Definition.Save(XMLFileName) 
+            
+            Result = ReadFileDefinition(FileObj.Definition, DBName, Library, FileName)
+        Catch dgEx Type( dgException )
+            // MsgBox "Error:" + dgEx.Message
+            LeaveSr *Nothing
+        EndTry
+        
+        // Get column definitions with the dataset's XSD.
+        
+        *This.db.Close()
+        LeaveSr Result 
+    EndFunc 
+    
+    BegFunc ReadFileDefinition Type(FileDef) 
+        DclSrParm XmlDoc        Type( XmlDocument ) 
+        DclSrParm DBName        Type( *String )
+        DclSrParm Library       Type( *String )
+        DclSrParm FileName      Type( *String )
+        
+        DclFld Element          Type( XmlElement ) 
+        DclFld NamespaceManager Type( XmlNamespaceManager ) 
+
+        DclFld Format           Type( XmlElement ) 
+        DclFld FieldAttribute   Type( XmlElement ) 
+        DclFld FieldType        Type( XmlElement ) 
+        DclFld FieldText        Type( XmlElement ) 
+        DclFld DataType         Type( XmlElement ) 
+        DclFld FileText         Type( XmlElement ) 
+        DclFld FldInfo          Type( Field ) 
+        
+        DclFld FldLength        Type( *String ) 
+        DclFld FldDecimals      Type( *String ) 
+        DclFld FldIndex         Type( *Integer4 ) 
+        DclFld KeyPosition      Type( *Integer4 )  Inz( 0 ) 
+
+        DclFld fi               Type(FileDef) New()
+        fi.DBName  = DBName
+        fi.Library = Library
+        fi.FileName = FileName 
+
+
+        NamespaceManager = *New XmlNamespaceManager( XmlDoc.NameTable() )        
+        NamespaceManager.AddNamespace( "fd"   , "http://schema.asna.com/DataGate/FileDef" )        
+        NamespaceManager.AddNamespace( "fmt"  , "http://schema.asna.com/DataGate/Format" )        
+        NamespaceManager.AddNamespace( "fld"  , "http://schema.asna.com/DataGate/Field" )        
+        NamespaceManager.AddNamespace( "ver"  , "http://schema.asna.com/Version" )        
+        NamespaceManager.AddNamespace( "attr" , "http://schema.asna.com/DataGate/FieldTypeAttr" )        
+        
+        Element = XmlDoc.SelectSingleNode( "fd:fileDef", NamespaceManager ) *As XmlElement
+        fi.Type = Element.GetAttribute( "fileType" ) 
+        If ( fi.Type.ToLower() = "simple" ) 
+            fi.Type = fi.Type + " logical"
+        EndIf
+        fi.RecordLength  = Element.GetAttribute( "fileRecordLength" ) 
+        fi.KeyLength     = Element.GetAttribute( "maxKeyLength" ) 
+        fi.DuplicateKeys = Element.GetAttribute( "dupKeys" )
+
+        If fi.Duplicatekeys = 'none'
+            fi.Duplicatekeys = 'Not allowed'
+        EndIf
+        
+        Element = XmlDoc.SelectSingleNode( "fd:fileDef/fd:baseFiles", NamespaceManager ) *As XmlElement
+        If ( Element <> *Nothing ) 
+            ForEach Element Collection( Element.ChildNodes ) 
+                // Remove leading character (which is a slash).
+                fi.BaseFile += Element.GetAttribute( "name" ).Remove( 0, 1 ) + "; "
+            EndFor
+            // Remove trailing semicolon and blank.
+            fi.BaseFile = fi.BaseFile.SubString( 0, fi.BaseFile.Length - 2 ) 
+        EndIf             
+        
+        // Get file format name and description.
+        Format = XmlDoc.SelectSingleNode( "fd:fileDef/fmt:format", NamespaceManager ) *As XmlElement
+        fi.Format = Format.GetAttribute( "name" ) 
+        
+        FileText = Format.SelectSingleNode( "fmt:text", NamespaceManager ) *As XmlElement
+        If ( FileText <> *Nothing ) 
+            fi.Description = FileText.InnerText.Trim()
+        EndIf             
+        
+        // Get each field.
+        Element = XmlDoc.SelectSingleNode( "fd:fileDef/fmt:format/fmt:fields", NamespaceManager ) *As XmlElement
+        ForEach ChildElement Type( XmlElement ) Collection( Element.ChildNodes ) 
+            FldInfo = *New Field()
+
+            // Set allow null.
+            If ( ChildElement.GetAttribute( "allowNulls" ) = "true" ) 
+                ////FldInfo.AllowNull = *True
+            Else    
+                ////FldInfo.AllowNull = *False
+            EndIf
+
+            // Get field name.
+            FieldAttribute = ChildElement.SelectSingleNode( "attr:fieldAttr", NamespaceManager ) *As XmlElement     
+            FldInfo.Name   = FieldAttribute.GetAttribute( "name" )
+            // -- Forrest fix here.
+            // Why is the # being replaced!?
+            //FldInfo.Alias  = FldInfo.Name.Replace( "#", "_" ) 
+            FldInfo.Alias = FldInfo.Name 
+            
+            // Get field type, length (precision), and decimals (scale).
+            FieldType = FieldAttribute.SelectSingleNode( "attr:fieldType", NamespaceManager ) *As XmlElement            
+            If ( FieldType.ChildNodes.Count = 1 ) 
+                DataType = FieldType.ChildNodes[ 0 ] *As XmlElement
+                // x = RegEx.Replace( DataType.Name, "Field$", String.Empty ) 
+                FldInfo.Type     = GetFieldDetails( DataType, *ByRef FldLength, *ByRef FldDecimals ) 
+                FldInfo.Length   = FldLength
+                FldInfo.Decimals = FldDecimals
+            EndIf
+            
+            // Get field text.
+            FieldText = FieldAttribute.SelectSingleNode( "attr:text", NamespaceManager ) *As XmlElement            
+            If ( FieldText <> *Nothing ) 
+                FldInfo.Description = FieldText.InnerText.Trim()
+            Else
+                FldInfo.Description = String.Empty 
+            EndIf                
+            
+            // fi.FieldInfoCollection.Add( FldInfo )
+            fi.Fields.Add( FldInfo ) 
+        EndFor 
+        
+        // Process key values.
+        Element = XmlDoc.SelectSingleNode( "fd:fileDef/fmt:format/fmt:keys", NamespaceManager ) *As XmlElement
+        If ( Element <> *Nothing ) 
+            // Process keys.
+            ForEach ChildElement Type( XmlElement ) Collection( Element.ChildNodes ) 
+                //x = ChildElement.GetAttribute( "name" ) 
+                //x = ChildElement.GetAttribute( "descending" ) 
+
+                // Find the field in the field collection and set its key position.
+                FldIndex = fi.Fields.IndexOf(ChildElement.GetAttribute( "name" ) )
+                If ( FldIndex > -1 )
+                    fi.Fields[ FldIndex ].KeyPosition = KeyPosition 
+                    KeyPosition += 1
+                    fi.KeyFields.Add(fi.Fields[ FldIndex ])
+                EndIf 
+                
+            EndFor         
+            // Trim something off of the keys. 
+            // fi.Keys = fi.Keys.Substring( 0, fi.Keys.Length - 2 ) 
+        Else
+            // fi.Keys = String.Empty
+        EndIf             
+
+        LeaveSr fi
+    EndFunc
+
+    BegFunc GetFieldDetails Type( *String ) 
+        DclSrParm Element  Type( XmlElement ) 
+        DclSrParm Length   Type( *String ) By( *Reference ) 
+        DclSrParm Decimals Type( *String ) By( *Reference ) 
+
+        DclFld DataType      Type( *String ) 
+                
+        DataType = RegEx.Replace( Element.Name, "Field$", String.Empty ).ToLower()
+        
+        If      ( DataType = "char" )
+            DataType = "Char" 
+            Length   = PadLeft( Element.GetAttribute( "byteLength" ), 5 )  
+            Decimals = PadLeft( " ", 3 )
+        
+        ElseIf  ( DataType = "integer" ) 
+            DataType = "Integer"
+            Length   = PadLeft( Element.GetAttribute( "integerPrecision" ), 5 )  
+            Decimals = PadLeft( "0", 3 )  
+        
+        ElseIf  ( DataType = "packed" )         
+            DataType = "Packed"
+            Length   = PadLeft( Element.GetAttribute( "precision" ), 5 )
+            Decimals = PadLeft( Element.GetAttribute( "scale"     ), 3 )  
+        
+        ElseIf  ( DataType = "timestamp" ) 
+            DataType = "Timestamp"
+            Length   = PadLeft( " ", 5 )
+            Decimals = PadLeft( " ", 3 )          
+            
+        ElseIf  ( DataType = "date" ) 
+            DataType = "Date"
+            Length   = PadLeft( " ", 5 )
+            Decimals = PadLeft( " ", 3 )          
+        
+        ElseIf  ( DataType = "time" ) 
+            DataType = "Time"
+            Length   = PadLeft( " ", 5 )
+            Decimals = PadLeft( " ", 3 )          
+            
+        ElseIf  ( DataType = "zoned" ) 
+            DataType = "Zoned" 
+            Length   = PadLeft( Element.GetAttribute( "precision" ), 5 )
+            Decimals = PadLeft( Element.GetAttribute( "scale"     ), 3 )  
+            
+        ElseIf  ( DataType = "binary" )         
+            DataType = "Binary"
+            Length   = PadLeft( Element.GetAttribute( "precision" ), 5 )
+            Decimals = PadLeft( Element.GetAttribute( "scale"     ), 3 )  
+            
+        Else            
+            DataType = "Type error:" + DataType
+            Length   = String.Empty
+            Decimals = String.Empty 
+            
+        EndIf
+        
+        LeaveSr DataType
+        //    zonedField      precision="1" scale="0" 
+        //    packedField     precision="9" scale="2" (scale is the decimal places)
+        //    charField       byteLength="1" 
+        //    integerField    integerPrecision="long"
+        //    timestampField  dateTimeFormat="iso"
+    EndFunc 
+
+	BegFunc PadLeft  Type( *String ) 
+	    DclSrParm Value  Type( *String ) 
+	    DclSrParm Length Type( *Integer4 ) 
+	    
+	    DclFld TmpStr Type( *String ) Inz( "                     " ) 
+	    TmpStr = TmpStr + Value 
+	    
+	    LeaveSr TmpStr.Substring( TmpStr.Length - Length )
+    EndFunc 
+EndClass
+

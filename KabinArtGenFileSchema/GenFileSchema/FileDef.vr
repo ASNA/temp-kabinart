@@ -1,0 +1,143 @@
+﻿Using System
+Using System.Text
+
+BegClass FileDef  Access(*Public) 
+//    DclProp filename        Type(*String) Access(*Public)
+//    DclProp library         Type(*String) Access(*Public)
+//    DclProp dbname          Type(*String) Access(*Public) 
+//    DclProp type            Type(*String) Access(*Public)
+//    DclProp recordlength    Type(*String) Access(*Public)
+//    DclProp keylength       Type(*String) Access(*Public)
+//    DclProp duplicatekeys   Type(*String) Access(*Public)
+//    DclProp format          Type(*String) Access(*Public)
+//    DclProp description     Type(*String) Access(*Public)
+//    DclProp basefile        Type(*String) Access(*Public)
+//    DclProp fields          Type(FieldCollection) Access(*Public)
+//    DclProp keyfields       Type(FieldCollection) Access(*Public)
+
+    DclFld _filename Type(*String)
+    BegProp filename Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_filename)
+        EndGet
+        BegSet
+            _filename = *Propval
+        EndSet
+    EndProp
+
+    DclFld _library Type(*String)
+    BegProp library Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_library)
+        EndGet
+        BegSet
+            _library = *Propval
+        EndSet
+    EndProp    
+
+    DclFld _dbname Type(*String)
+    BegProp dbname Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_dbname)
+        EndGet
+        BegSet
+            _dbname = *Propval
+        EndSet
+    EndProp    
+
+    DclFld _type Type(*String)
+    BegProp type Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_type)
+        EndGet
+        BegSet
+            _type = *Propval
+        EndSet
+    EndProp    
+
+    DclFld _recordlength Type(*String)
+    BegProp recordlength Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_recordlength)
+        EndGet
+        BegSet
+            _recordlength = *Propval
+        EndSet
+    EndProp    
+
+    DclFld _keylength Type(*String)
+    BegProp keylength Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_keylength)
+        EndGet
+        BegSet
+            _keylength = *Propval
+        EndSet
+    EndProp    
+
+    DclFld _duplicatekeys Type(*String)
+    BegProp duplicatekeys Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_duplicatekeys)
+        EndGet
+        BegSet
+            _duplicatekeys = *Propval
+        EndSet
+    EndProp    
+
+    DclFld _format Type(*String)
+    BegProp format Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_format)
+        EndGet
+        BegSet
+            _format = *Propval
+        EndSet
+    EndProp    
+
+    DclFld _description Type(*String)
+    BegProp description Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_description)
+        EndGet
+        BegSet
+            _description = *Propval
+        EndSet
+    EndProp    
+//
+    DclFld _basefile Type(*String)
+    BegProp basefile Type(*String)  Access(*Public)
+        BegGet
+            LeaveSr Value(_basefile)
+        EndGet
+        BegSet
+            _basefile = *Propval
+        EndSet        
+    EndProp   
+
+    DclFld _fields Type(FieldCollection)
+    BegProp fields Type(FieldCollection)  Access(*Public)
+        BegGet
+            LeaveSr Value(_fields)
+        EndGet
+        BegSet
+            _fields = *Propval
+        EndSet
+    EndProp     
+
+    DclFld _keyfields Type(FieldCollection)
+    BegProp keyfields Type(FieldCollection)  Access(*Public)
+        BegGet
+            LeaveSr Value(_keyfields)
+        EndGet
+        BegSet
+            _keyfields = *Propval
+        EndSet
+    EndProp
+
+    BegConstructor Access(*Public)
+        Fields = *New FieldCollection()
+        KeyFields = *New FieldCollection()
+    EndConstructor 
+EndClass 
+

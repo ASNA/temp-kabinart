@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1300
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{A99171F4-43ED-48FC-978B-9193EDE4E466}") = "KabinartDataGateHelper", "KabinartDataGateHelper\KabinartDataGateHelper.vrproj", "{B8D57437-D741-48FF-8C16-6517458ABD4D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B8D57437-D741-48FF-8C16-6517458ABD4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8D57437-D741-48FF-8C16-6517458ABD4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8D57437-D741-48FF-8C16-6517458ABD4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8D57437-D741-48FF-8C16-6517458ABD4D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AB983C29-69A6-4D9E-B0CF-DCEC83B75858}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,59 @@
+﻿Using System
+Using System.Text
+Using System.Collections.Generic
+
+DclNamespace GenFileSchema
+
+BegClass SQLOperations Access(*Public)
+
+    BegFunc WriteSQLSchema Type(*String) Access(*Public) Shared(*Yes) 
+        DclSrParm f Type(DataGateFile)
+        DclSrParm SqlDBName Type(*String) 
+
+        DclFld fld Type(Field) 
+
+        DclFld fullsql Type(StringBuilder) New() 
+        DclFld i Type(*Integer4) 
+
+        fullSql.AppendLine('Use {{sqlDB}}') 
+        fullSql.AppendLine("")
+        fullSql.AppendLine("If EXISTS(SELECT *") 
+        fullSql.AppendLine("          FROM sys.tables")
+        fullSql.AppendLine("		  WHERE SCHEMA_NAME(schema_id) LIKE 'dbo'")
+        fullSql.AppendLine("		  AND name LIKE '{{file}}')")		  
+        fullSql.AppendLine("DROP TABLE [dbo].[{{file}}];")
+        // fullSql.AppendLine("DROP TABLE IF EXISTS {{file}}") 
+        fullSql.AppendLine("")
+        fullSql.AppendLine("CREATE TABLE {{file}} (")
+
+        fullSql.Replace('{{sqlDB}}', SqlDBName) 
+        fullSql.Replace('{{file}}', f.file) 
+
+        For Index(i = 0) To(f.fields.Count -1)
+            fld = f.fields[i]
+
+            If i = f.fields.Count - 1
+                fullSql.Append(String.Format("    [{0}] {1} {2}", fld.name, fld.sqlservertype, fld.sqlservernull))
+            Else 
+                fullSql.AppendLine(String.Format("    [{0}] {1} {2},", fld.name, fld.sqlservertype, fld.sqlservernull))
+            EndIf 
+        EndFor
+
+        If f.duplicatekeys <> 'allowed'
+            If f.keyfieldslist <> *Blanks
+                fullSql.Append(",")
+                fullSql.AppendLine("")
+                fullSql.AppendLine("")
+                fullSql.AppendLine(String.Format("    PRIMARY KEY ({0})", f.keyfieldslist))
+            EndIf 
+        Else 
+            fullSql.AppendLine("")
+        EndIf
+
+        fullSql.AppendLine(");")
+
+        LeaveSr fullSql.ToString()
+    EndFunc 
+
+EndClass
+  
